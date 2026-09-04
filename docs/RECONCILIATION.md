@@ -206,14 +206,62 @@ exactement dégénéré (les deux plantent avec la formule brute, les deux
 restent finis avec la garde), dans les deux langages, avec un résultat
 identique entre Python et Matlab à 6 chiffres significatifs.
 
-**Non repris pour l'instant** : `wholechain()` (référencée par
-`decayNAtoms.m`/`decayNAtoms2.m`, absente des fichiers reçus — construit
-vraisemblablement la structure `filiation` en décomposant l'arbre de
-branchement de `chain()`/`daughters()` en chemins linéaires, avec lambdas/
-ratios/noms/`.conct` par branche) ; `decayNAtoms`/`decayNAtoms2`
-elles-mêmes (portage direct possible une fois `wholechain` reconstituée) ;
-version C de `bateman` (valeur ajoutée moindre une fois la version
+**Non repris pour l'instant** : `decayNAtoms`/`decayNAtoms2` elles-mêmes
+(portage direct possible maintenant que `wholechain` est reconstituée, voir
+§8) ; version C de `bateman` (valeur ajoutée moindre une fois la version
 vectorisée numpy/Matlab en place, sauf besoin de très gros volumes).
+
+## 8. `wholechain` — reconstruction (deux défauts trouvés, un plus profond que prévu)
+
+Reçue et analysée. Deux défauts confirmés :
+
+**Lenteur des accès fichier** : `decayWay()` est appelé pour chaque
+nucléide de chaque branche, puis chaque nucléide est de nouveau lu dans la
+boucle finale (`lambda(...)`) — sans aucun cache, un nucléide partagé par
+plusieurs branches (très fréquent : ancêtres communs) est relu autant de
+fois qu'il apparaît. Résolu simplement : `nuc.filiation.wholechain` prend
+un unique `LaraClient` à réutiliser pour tout l'arbre, qui mémorise déjà
+chaque nucléide par lui-même (voir §2) — chaque nucléide n'est effectivement
+récupéré qu'une seule fois, quel que soit le nombre de branches qui le
+traversent. Vérifié explicitement dans `test_filiation.py` (compte les
+appels réseau, pas juste les occurrences dans les branches).
+
+**Comptage `conct` : bug confirmé, plus subtil qu'il n'y paraissait.**
+Premier symptôme trouvé en relisant le code : la branche créée pour la 2ᵉ
+(3ᵉ, ...) fille d'un embranchement remet tout son `conct` à zéro, y
+compris sa toute dernière position — qui est pourtant la fille elle-même,
+un nucléide qui n'apparaît dans aucune autre branche. Avec
+`decayNAtoms.m`, sa population n'est alors jamais comptabilisée nulle
+part.
+
+Une première correction (ne zéroter que le préfixe partagé, pas la
+nouvelle fille) semblait suffire mais a échoué au test de bout en bout
+(conservation de la masse) sur un cas de **reconvergence** (A se sépare en
+B et C, qui redonnent tous les deux D) : la masse totale calculée valait
+700 sur 1000 attendus. Cause : un simple ensemble « déjà vu » confond deux
+situations différentes — un **préfixe partagé** entre branches sœurs (A
+dans les 2 branches : vraie redondance, la même valeur calculée deux fois,
+un seul comptage suffit) et un **point de reconvergence en aval** (D
+atteint via B *et* via C : deux contributions *différentes*, calculées
+avec des rapports de branchement différents, qui doivent s'additionner,
+pas se dédupliquer). Corrigé en ne zérotant *que* le préfixe explicitement
+partagé au moment précis d'un embranchement, sans état global : tout nœud
+nouvellement visité en aval — qu'il s'agisse d'un nucléide jamais vu ou
+d'un point de reconvergence — repart avec `conct=1`. Testé sur les deux
+cas (embranchement simple, embranchement + reconvergence), avec
+vérification de conservation de la masse via `bateman()` de bout en bout.
+
+Ce second défaut n'aurait pas été visible sur un simple examen du code ou
+même sur le premier test (embranchement sans reconvergence, qui passait
+déjà avec la correction naïve) — seul le test de conservation de la masse
+sur un cas de reconvergence l'a révélé. Les chaînes de décroissance
+naturelles reconvergent couramment (séries de l'uranium, du thorium) :
+un cas à surveiller si `decayNAtoms`/`decayNAtoms2` sont testées sur un
+vrai nucléide de ces familles.
+
+Pas encore fait : portage Matlab de `filiation.py` (même logique,
+faisable directement) ; portage de `decayNAtoms`/`decayNAtoms2`
+elles-mêmes sur cette base.
 
 ## 7. Périmètre volontairement laissé de côté
 

@@ -23,7 +23,10 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 import os
 
-LARA_URL_TEMPLATE = "http://www.lnhb.fr/nuclides/{nuclide}.lara.txt"
+LARA_URL_TEMPLATE = "http://www.lnhb.fr/Laraweb/Results/{nuclide}.lara.txt"
+# Confirmé directement (pas de suffixe "_@04" nécessaire, contrairement à
+# l'hypothèse précédente — voir docs/RECONCILIATION.md §6) : fonctionne et
+# correspond à la recopie locale de l'utilisateur.
 DEFAULT_CACHE_DIR = os.environ.get("NUC_LARA_CACHE_DIR", os.path.expanduser("~/.cache/nuc/lara"))
 
 
