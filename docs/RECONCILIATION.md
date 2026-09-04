@@ -139,7 +139,83 @@ code destiné à être réutilisé.
   peux inférer de la structure sans exemple. Porté tel quel (saut de 15
   lignes, 3 colonnes), non testé.
 
-## 6. Périmètre volontairement laissé de côté
+## 6. Compléments (fichiers réels reçus : H-3.lara.txt, beta-_H3_tot.bs, bateman.m)
+
+**URL LARA, précision** : `http://www.lnhb.fr/Laraweb/Results/H-3_@04.lara.txt`
+(suffixe `_@04`, sans doute un numéro de révision) est présentée comme la
+source de référence complète ; `http://www.lnhb.fr/nuclides/<nuclide>.lara.txt`
+(sans suffixe) reste la seule que j'ai personnellement vérifiée par requête
+directe (chat précédent, Zr-95/Nb-95/Ag-110/Er-169). N'ayant pas d'accès
+réseau vers `lnhb.fr` depuis cet environnement (domaine hors liste
+autorisée), je ne peux vérifier ni confirmer le format exact du suffixe
+`_@04` (fixe ? dépendant du nucléide ou de la date ?) — `lara_client.py`
+garde l'URL simple déjà vérifiée, en gardant `LARA_URL_TEMPLATE` isolée et
+documentée pour être ajustée d'un endroit unique si le suffixe s'avère
+nécessaire.
+
+**Format BetaShape — confirmé sur données réelles** (`beta-_H3_tot.bs`) :
+15 lignes d'en-tête puis 3 colonnes (E keV, dN/dE par keV, incertitude).
+Validé par recalcul direct : énergie moyenne recalculée à partir des 312
+points = 5.69562 keV, contre 5.69565(32) keV annoncée dans le fichier
+lui-même — cohérent. Confirme que le saut de « 15 lignes » d'`Ebetam.m`/
+`Ebetap.m`/`bsfile.m` était déjà juste (contrairement à la table
+d'émissions LARA, §3.3, toujours sans échantillon).
+
+Convention de nom de fichier observée : `beta-_H3_tot.bs` — remarque : le
+tiret du nom de nucléide semble absent (`H3`, pas `H-3`) ; à confirmer si
+c'est systématique.
+
+**`Ebetam`/`Ebetap` — clarification de leur rôle réel**, en relisant le
+code à la lumière du fichier BetaShape reçu : `data(:,1,end)` ne récupère
+que le **dernier point** du fichier (l'énergie de fin de spectre, ex.
+18.591 keV pour H-3 — qui coïncide exactement avec `Q- ; 18.591` du
+`.lara.txt`). Ces fonctions renvoient donc un point de fin de spectre
+(« endpoint »), pas la courbe complète — c'est ce point qui sert
+d'argument `endpoint` à `Pbeta`, laquelle recalcule la forme elle-même
+(Fermi). `unc_E`/`unc_I` restent déclarées mais jamais renseignées dans
+`Ebetam.m`/`Ebetap.m` reçus (incertitude non propagée à ce stade) — repris
+tel quel, signalé ici plutôt que « corrigé » silencieusement.
+
+**Bateman — lenteur diagnostiquée et traitée.** La version reçue
+(`bateman.m`) est un port fidèle et correct de l'équation de Bateman
+classique (chaîne linéaire, formule à triple somme/produit m/k/j) — la
+lenteur ne vient pas d'une erreur de formule, mais du fait qu'un seul jeu
+(lambdas, ratios, N0) est traité par appel : une propagation Monte-Carlo à
+S tirages nécessite donc S appels, chacun ré-exécutant les boucles m/k/j
+en scalaire interprété. `python/nuc/bateman.py` et `matlab/bateman.m`
+(nouveaux) gardent les boucles sur la **topologie** de la chaîne (petite,
+N rarement > 15-20) en Python/Matlab, mais vectorisent chaque terme sur
+**tous les tirages et tous les instants à la fois** (formes `(S,N)` /
+`(T,)` → sortie `(S,T,N)`) : le nombre d'itérations de boucle ne dépend
+plus de S. Mesuré : ×15 sur un cas réaliste (chaîne à 8 nucléides, 20 000
+tirages, Python vectorisé vs. boucle Python pure fidèle au .m — la
+comparaison face à MATLAB scalaire réel n'a pas pu être mesurée, MATLAB
+n'étant pas disponible dans cet environnement, mais l'écart attendu est au
+moins comparable). Validé par comparaison exacte (écart relatif nul) avec
+un port scalaire fidèle du `.m` reçu, sur plusieurs instants et plusieurs
+tirages, dans les deux langages.
+
+**Garde-fou ajouté, absent du `.m` reçu** : deux lambdas quasi égaux dans
+un même groupe font exploser `lambda_j - lambda_k` au dénominateur (la
+protection existait en commentaire dans `bateman.m` puis avait été
+désactivée). Un tirage Monte-Carlo peut produire ce cas par hasard même
+si les lambdas nominaux sont bien distincts — la garde ne peut donc pas
+être omise ici. Décalage epsilon relatif (1e-10 par défaut) appliqué aux
+seules paires concernées ; testé sur un cas quasi dégénéré et un cas
+exactement dégénéré (les deux plantent avec la formule brute, les deux
+restent finis avec la garde), dans les deux langages, avec un résultat
+identique entre Python et Matlab à 6 chiffres significatifs.
+
+**Non repris pour l'instant** : `wholechain()` (référencée par
+`decayNAtoms.m`/`decayNAtoms2.m`, absente des fichiers reçus — construit
+vraisemblablement la structure `filiation` en décomposant l'arbre de
+branchement de `chain()`/`daughters()` en chemins linéaires, avec lambdas/
+ratios/noms/`.conct` par branche) ; `decayNAtoms`/`decayNAtoms2`
+elles-mêmes (portage direct possible une fois `wholechain` reconstituée) ;
+version C de `bateman` (valeur ajoutée moindre une fois la version
+vectorisée numpy/Matlab en place, sauf besoin de très gros volumes).
+
+## 7. Périmètre volontairement laissé de côté
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
 complet ne font pas partie des 16 fichiers transmis pour cette passe — non
