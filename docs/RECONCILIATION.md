@@ -263,7 +263,63 @@ Pas encore fait : portage Matlab de `filiation.py` (même logique,
 faisable directement) ; portage de `decayNAtoms`/`decayNAtoms2`
 elles-mêmes sur cette base.
 
+## 9. Table d'émissions — confirmée sur données réelles (Pb-214, Ra-223, Po-218, Bi-214, Po-214)
+
+Format : `Energy (keV) ; Ener. unc. (keV) ; Intensity (%) ; Int. unc. (%) ;
+Type ; Origin ; Lvl. start ; Lvl. end` — confirme l'ordre déjà indiqué par
+le commentaire d'`Egamma.m` (type en 5ᵉ position), **pas** celui de
+`Lara.cpp::spectre()` (2012, type en 1ʳᵉ position — format ou découpage
+plus ancien). Types observés : `g` (gamma), `X...` (rayons X, sous-couche
+en suffixe : XL, XKa1, XKa2, XK'b1, XK'b2), `a` (alpha), `a*` (alpha
+« longue portée », depuis un état excité peuplé par la désintégration
+précédente — rencontré dans `Bi-214.lara.txt` pour les raies du Po-214,
+descendant à vie très courte, inclus dans le même fichier par convention
+spectroscopique). `nuc/emissions.py` implémente `Egamma`/`Ealpha` sur cette
+base, testé sur les données réelles sauvegardées (`docs/samples/lara_real/`).
+
+Champ supplémentaire découvert : `Possible parent(s)` (même structure que
+`Daughter(s)`, sens inverse). Et surtout : `Q-`/`Q+`/`Qalpha` peuvent
+apparaître **sur la même ligne** (ex. Po-218 : `"Q- ; 260 ; Qalpha ;
+6114.68"`) — `parse_field` initial (qui ne cherchait qu'en tête de ligne)
+ne trouvait pas `Qalpha` dans ce cas ; corrigé pour chercher l'étiquette
+n'importe où parmi les champs séparés par `;`.
+
+URL confirmée directement par vous : `http://www.lnhb.fr/Laraweb/Results/
+<nuclide>.lara.txt` (sans suffixe `_@04`) — `lara_client.py` mis à jour en
+conséquence (l'hypothèse `_@04` du tour précédent est abandonnée).
+
+## 10. Démonstration Rn-222 (`docs/samples/rn222_demo.py`)
+
+Pipeline complet `wholechain` → `bateman` exécuté sur la vraie chaîne
+Rn-222, pour comparaison avec votre outil de référence indépendant.
+Décomposition trouvée : 3 branches (Rn-222→Po-218→At-218 ; …→Pb-214→
+Bi-214→Po-214→Pb-210 ; …→Bi-214→Tl-210→Pb-210), cohérente avec les deux
+embranchements réels de la chaîne (Po-218 : 99.978 % alpha vers Pb-214,
+0.022 % bêta vers At-218 ; Bi-214 : 99.979 % bêta vers Po-214, 0.021 %
+alpha vers Tl-210).
+
+**Limites de cette démo précise** (méthode déjà validée par ailleurs, voir
+§§7-8 — ce sont les *données d'entrée* de cette exécution particulière qui
+sont incomplètes, pas le calcul) :
+- Rn-222, Tl-210, Pb-210 : demi-vies de littérature (bien établies), pas
+  de fichier LARA récupéré pour ces trois-là dans cette session.
+- At-218 traité comme stable, faute de donnée — sous-estime cette branche
+  déjà marginale (0.022 % de Po-218) ; Rn-218 (descendant d'At-218) non
+  inclus du tout.
+- Résultat (100 Bq de Rn-222 initial, t = 3600 s) : Rn-222 ≈ 99,25 Bq,
+  Po-218 ≈ 99,30 Bq, Pb-214 ≈ 75,58 Bq, Bi-214 ≈ Po-214 ≈ 49,08-49,09 Bq —
+  cohérent qualitativement (Po-218 en équilibre quasi immédiat avec
+  Rn-222 vu sa demi-vie de 3 min ; Pb-214/Bi-214/Po-214 encore en
+  accumulation, pas encore à l'équilibre séculaire au bout d'1 h, ce qui
+  est attendu vu leurs demi-vies de l'ordre de 20-27 min).
+
 ## 7. Périmètre volontairement laissé de côté
+
+`nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
+complet ne font pas partie des fichiers transmis pour cette passe — non
+traités ici. Une ébauche Python existe dans le travail du chat précédent
+(non vérifiée indépendamment à l'époque) ; à reprendre séparément si vous
+le souhaitez.
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
 complet ne font pas partie des 16 fichiers transmis pour cette passe — non

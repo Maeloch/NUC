@@ -45,11 +45,16 @@ def looks_like_lara_file(txt: str) -> bool:
 
 
 def parse_field(text: str, label: str) -> Optional[list[str]]:
-    """Première ligne commençant par `label`, découpée sur ';' (éléments
-    nettoyés). None si absent (résultat normal, ex. nucléide stable)."""
+    """Cherche `label` comme un des champs séparés par ';' d'une ligne
+    (pas nécessairement le premier — ex. "Q- ; 260 ; Qalpha ; 6114.68" :
+    Po-218 a Q- ET Qalpha sur la MÊME ligne, cf. échantillon réel). Renvoie
+    la sous-liste [label, valeur, ...] à partir de ce champ, nettoyée.
+    None si absent (résultat normal, ex. nucléide stable)."""
     for line in text.splitlines():
-        if line.strip().startswith(label):
-            return [p.strip() for p in line.split(";")]
+        parts = [p.strip() for p in line.split(";")]
+        for i, p in enumerate(parts):
+            if p == label or p.startswith(label + " "):
+                return parts[i:]
     return None
 
 
