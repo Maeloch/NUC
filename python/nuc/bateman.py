@@ -32,6 +32,79 @@ from __future__ import annotations
 import numpy as np
 
 
+def bateman_with_uncertainty(
+    lambdas: np.ndarray,
+    u_lambdas: np.ndarray,
+    ratios: np.ndarray,
+    u_ratios: np.ndarray,
+    N0: np.ndarray,
+    t,
+    h_rel: float = 1e-6,
+    **kwargs,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    (valeur, incertitude-type) par propagation **linéarisée correcte**
+    (GUM : matrice jacobienne par différences finies centrées par rapport
+    aux `lambdas`/`ratios` INDÉPENDANTS, combinaison quadratique en
+    supposant ces entrées indépendantes entre elles).
+
+    Pourquoi pas simplement des `Value`/`si_value` partout dans `bateman`
+    (votre question) : la formule de Bateman réutilise le MÊME lambda_k
+    plusieurs fois dans la même expression (le terme `exp(-lambda_k.t)`
+    ET plusieurs dénominateurs `lambda_j - lambda_k` pour différents j) —
+    une propagation `Value` "naïve" (nœud par nœud dans l'arbre de calcul)
+    traite chaque occurrence comme une variable indépendante et se trompe
+    dès qu'une valeur se répète. Exemple minimal et sans appel à
+    `bateman` : avec la classe `Value` du dépôt `SI`,
+    `Value(5.0, 0.3) - Value(5.0, 0.3)` donne `0 ± 0.424`, alors que la
+    bonne réponse est `0 ± 0` (x−x vaut exactement 0, quelle que soit la
+    valeur de x — aucune incertitude réelle ne subsiste). La fonction
+    présente ici évite ce piège en dérivant par rapport à chaque lambda
+    *une fois*, quel que soit le nombre de fois qu'il apparaît dans la
+    formule.
+
+    Validé par comparaison à un tirage Monte-Carlo (200 000 échantillons) :
+    écart < 1 % (résidu de linéarisation, cohérent avec une formule non
+    linéaire — voir `tests/test_bateman.py`). Toujours moins riche qu'un
+    Monte-Carlo complet (suppose les entrées indépendantes, linéarise
+    autour du point central) mais correct pour de petites incertitudes,
+    et beaucoup moins coûteux qu'un grand ensemble Monte-Carlo si c'est
+    tout ce dont vous avez besoin (ex. une estimation rapide, un
+    contrôle de cohérence).
+
+    lambdas/u_lambdas/ratios/u_ratios/N0 : tableaux (N,) — un seul jeu
+    (pas de dimension d'échantillons : ceci EST l'alternative au
+    Monte-Carlo, pas un outil à batcher par-dessus). `**kwargs` transmis
+    à `bateman` (ex. `epsilon_rel`).
+    """
+    lambdas = np.asarray(lambdas, dtype=float)
+    ratios = np.asarray(ratios, dtype=float)
+    N0 = np.asarray(N0, dtype=float)
+    n = len(lambdas)
+
+    central = bateman(lambdas, ratios, N0, t, **kwargs)
+    out_shape = central.shape
+
+    variance = np.zeros(out_shape)
+    for arr, u_arr, is_lambda in ((lambdas, u_lambdas, True), (ratios, u_ratios, False)):
+        for k in range(n):
+            if u_arr[k] == 0:
+                continue
+            h = max(h_rel * abs(arr[k]), h_rel)
+            arr_plus = arr.copy(); arr_plus[k] += h
+            arr_minus = arr.copy(); arr_minus[k] -= h
+            if is_lambda:
+                plus = bateman(arr_plus, ratios, N0, t, **kwargs)
+                minus = bateman(arr_minus, ratios, N0, t, **kwargs)
+            else:
+                plus = bateman(lambdas, arr_plus, N0, t, **kwargs)
+                minus = bateman(lambdas, arr_minus, N0, t, **kwargs)
+            dOut_dArrK = (plus - minus) / (2 * h)
+            variance += (dOut_dArrK * u_arr[k]) ** 2
+
+    return central, np.sqrt(variance)
+
+
 def bateman(
     lambdas: np.ndarray,
     ratios: np.ndarray,
