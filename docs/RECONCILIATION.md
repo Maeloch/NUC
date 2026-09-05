@@ -355,7 +355,7 @@ Hors périmètre de cette comparaison (au-delà de Pb-210 : Bi-210, Hg-206,
 Po-210, Tl-206) : négligeables à 1h (10⁻⁶ à 10⁻¹² Bq dans la référence
 elle-même), non implémentés dans ce dépôt pour l'instant.
 
-## 7. Périmètre volontairement laissé de côté
+## Annexe : périmètre volontairement laissé de côté
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
 complet ne font pas partie des fichiers transmis pour cette passe — non
