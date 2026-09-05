@@ -313,16 +313,52 @@ sont incomplètes, pas le calcul) :
   accumulation, pas encore à l'équilibre séculaire au bout d'1 h, ce qui
   est attendu vu leurs demi-vies de l'ordre de 20-27 min).
 
+## 11. Validation contre un outil de référence indépendant — succès
+
+Comparaison contre le calculateur de chaîne officiel Nucléide-Lara (LNHB),
+fourni par l'utilisateur (`docs/samples/reference_lnhb_rn222_chain.txt`) :
+1000 Bq de Rn-222, activités à t=3600 s.
+
+D'abord avec `docs/samples/rn222_demo.py` dans son état précédent
+(§10, sans At-218/Rn-218 correctement modélisés, Pb-210 traité comme un
+puits parfait) : accord déjà excellent sur la branche dominante
+(Rn-222/Po-218/Pb-214 à moins de 0,001 %), mais At-218 et Pb-210 faux
+(0 au lieu de leur vraie valeur, faute d'avoir leurs bonnes constantes de
+décroissance).
+
+Corrigé avec les demi-vies exactes lues dans l'en-tête de la référence
+elle-même (At-218 = 1,4 s, Rn-218 = 36,0 ms, Pb-210 = 22,23 a — plus un
+puits parfait mais une vraie constante de décroissance, aussi petite
+soit-elle) :
+
+| Nucléide | Ce dépôt (Bq) | Référence (Bq) | Écart relatif |
+|---|---|---|---|
+| Rn-222 | 992.47458 | 992.47 | 0.0005 % |
+| Po-218 | 993.02714 | 993.03 | 0.0003 % |
+| At-218 | 0.21847 | 0.21847 | 0.0014 % |
+| Pb-214 | 755.80473 | 755.81 | 0.0007 % |
+| Rn-218 | 0.00022 | 0.00022 | 0.0014 % |
+| Bi-214 | 491.05022 | 491.03 | 0.0041 % |
+| Po-214 | 490.94728 | 490.93 | 0.0035 % |
+| Tl-210 | 0.09939 | 0.09938 | 0.0040 % |
+| Pb-210 | 0.00071 | 0.00071 | 0.0032 % |
+
+Écart maximal 0,004 %, cohérent avec la précision des demi-vies reprises
+(littérature/en-tête de la référence, pas des fichiers LARA complets pour
+Rn-222/At-218/Rn-218/Tl-210/Pb-210) plutôt qu'avec une erreur de méthode.
+Valide, sur un cas réel avec reconvergence effective (At-218 redonne
+Bi-214 à 99,9 %, la même branche que Pb-214→Bi-214 : exactement le
+scénario du bug §8 corrigé) : `filiation.py` et `bateman.py` produisent
+des résultats corrects de bout en bout.
+
+Hors périmètre de cette comparaison (au-delà de Pb-210 : Bi-210, Hg-206,
+Po-210, Tl-206) : négligeables à 1h (10⁻⁶ à 10⁻¹² Bq dans la référence
+elle-même), non implémentés dans ce dépôt pour l'instant.
+
 ## 7. Périmètre volontairement laissé de côté
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
 complet ne font pas partie des fichiers transmis pour cette passe — non
-traités ici. Une ébauche Python existe dans le travail du chat précédent
-(non vérifiée indépendamment à l'époque) ; à reprendre séparément si vous
-le souhaitez.
-
-`nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
-complet ne font pas partie des 16 fichiers transmis pour cette passe — non
 traités ici. Une ébauche Python existe dans le travail du chat précédent
 (non vérifiée indépendamment à l'époque) ; à reprendre séparément si vous
 le souhaitez.

@@ -1,0 +1,31 @@
+Sortie du calculateur de chaîne officiel Nucléide-Lara (LNHB), fournie par
+l'utilisateur comme référence indépendante — voir docs/RECONCILIATION.md
+§11 pour la comparaison détaillée avec ce dépôt (écart < 0,005 %).
+
+1000 Bq de Rn-222 à t=0, activités totales (AT) à t=3600 s :
+
+Rn-222  : 992.47 Bq   (A(t), pas de parent dans ce calcul)
+Po-218  : 993.03 Bq
+At-218  : 0.21847 Bq
+Pb-214  : 755.81 Bq
+Rn-218  : 0.00021847 Bq
+Bi-214  : 491.03 Bq
+Po-214  : 490.93 Bq
+Tl-210  : 0.099384 Bq
+Pb-210  : 0.00071132 Bq
+Bi-210  : 1.1218E-6 Bq   (hors périmètre de ce dépôt, négligeable à 1h)
+Hg-206  : 8.4741E-12 Bq  (idem)
+Po-210  : 4.8926E-11 Bq  (idem)
+Tl-206  : 7.4544E-12 Bq  (idem)
+
+Demi-vies utilisées par la référence (utiles pour d'éventuelles suites) :
+Rn-222 3.8232 d, Po-218 3.071 min, At-218 1.4 s, Pb-214 26.916 min,
+Rn-218 36.0E-3 s, Bi-214 19.8 min, Po-214 162.3E-6 s, Tl-210 1.30 min,
+Pb-210 22.23 a, Bi-210 5.012 d, Hg-206 8.32 min, Po-210 138.3763 d,
+Tl-206 4.202 min.
+
+Table complète des intensités d'émission par nucléide à t=0 et t=3600s
+également fournie par l'utilisateur (non reprise ici en détail — voir la
+pièce jointe d'origine dans la conversation) : sert de base possible pour
+valider `emissions.py` (Egamma/Ealpha) combiné à ce calcul de chaîne dans
+une prochaine étape, non fait dans cette passe.
