@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 c/**/*.o
 c/**/*.a
+c/tests/test_nuc
+matlab/tests/bateman_original.m
