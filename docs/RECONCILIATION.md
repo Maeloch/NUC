@@ -371,6 +371,40 @@ Note d'implémentation Matlab : `containers.Map` est une classe *handle*
 par valeur) — le cache mémoire de `lara_client_new` reste donc bien
 partagé même quand `client` est passé par valeur d'une fonction à l'autre.
 
+## 13. Portage C — parité à trois confirmée (Python / Matlab / C)
+
+`c/include/nuc_lara.h`, `nuc_filiation.h`, `nuc_bateman.h` (+ `.c`) : même
+logique que les portages Python/Matlab, y compris le correctif de
+reconvergence (§8). Dépend de `si_value` (dépôt `SI`, frère de celui-ci —
+`Makefile` suppose `../../SI` par défaut, surchageable via `make
+SI_DIR=...`). 17/17 tests (`c/tests/test_nuc.c`), dont la même chaîne
+Rn-222 que §11 : résultats **identiques aux deux autres langages** (Rn-222
+992.47458, Po-218 993.02714, Pb-214 755.80473, Bi-214 491.05022, Po-214
+490.94728 Bq, etc.) — les trois portages, indépendamment validés contre
+l'outil LNHB, se valident maintenant mutuellement.
+
+Contrairement à Python/Matlab (vectorisés sur les tirages Monte-Carlo *et*
+le temps, pour compenser la lenteur des boucles interprétées), la version
+C ne vectorise que sur le temps : en C, une boucle sur les tirages
+Monte-Carlo est déjà rapide (code compilé), la vectorisation « tirages »
+qui était le point clé en Python/Matlab n'a pas la même urgence ici.
+
+**Bug trouvé en compilant, même famille que dans `si_units.c` (dépôt
+SI)** : `strdup`/`strtok_r` sans `#define _POSIX_C_SOURCE 200809L` (ce
+sont des fonctions POSIX, pas C99 pur) et `snprintf` sans `<stdio.h>`
+étaient implicitement déclarées comme renvoyant `int` au lieu de `char*`
+— tronque un pointeur 64 bits en 32 bits, un segfault immédiat à
+l'exécution. Corrigé ; sert à nouveau d'illustration de l'utilité de
+compiler et exécuter réellement plutôt que de se fier à la seule lecture.
+
+Second incident, cette fois dans le test lui-même (pas la bibliothèque) :
+une première version de `test_bateman_matches_matlab_python_reference`
+comparait le résultat à des valeurs de référence retapées de mémoire, qui
+appartenaient en réalité à un tout autre jeu de lambdas exploré plus tôt
+dans la session — le test échouait alors que le calcul C était juste.
+Corrigé en recalculant les valeurs de référence fraîchement depuis le port
+scalaire fidèle de `bateman.m`, jamais retapées à la main.
+
 ## Annexe : périmètre volontairement laissé de côté
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
