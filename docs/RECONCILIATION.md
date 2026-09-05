@@ -355,6 +355,22 @@ Hors périmètre de cette comparaison (au-delà de Pb-210 : Bi-210, Hg-206,
 Po-210, Tl-206) : négligeables à 1h (10⁻⁶ à 10⁻¹² Bq dans la référence
 elle-même), non implémentés dans ce dépôt pour l'instant.
 
+## 12. Portage Matlab de `filiation`/`lara_client` — parité confirmée
+
+`matlab/filiation.m`, `lara_client_new.m`, `lara_field.m`, `lara_fetch.m`,
+`lara_daughters.m`, `lara_decay_constant.m`, `lara_is_stable.m` : même
+logique que les modules Python correspondants, y compris le correctif de
+reconvergence (§8). 8/8 tests (`test_filiation.m`, mêmes cas que
+`test_filiation.py`). `docs/samples/rn222_demo.m` reproduit la
+démonstration Rn-222 : résultats **identiques au chiffre affiché près**
+avec la version Python (elle-même validée à <0,005 % contre la référence
+LNHB, §11) — confirme la parité complète entre les deux portages.
+
+Note d'implémentation Matlab : `containers.Map` est une classe *handle*
+(référence), contrairement aux struct/tableaux Matlab habituels (copiés
+par valeur) — le cache mémoire de `lara_client_new` reste donc bien
+partagé même quand `client` est passé par valeur d'une fonction à l'autre.
+
 ## Annexe : périmètre volontairement laissé de côté
 
 `nuc.stopping_power` (Bethe-Bloch) et le module `Spectrum.bas`/`Autre.bas`
